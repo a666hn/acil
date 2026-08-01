@@ -50,9 +50,9 @@ download() {
   output="$2"
 
   if has curl; then
-    curl --fail --silent --location --output "$output" "$url" || err "Download failed: $url"
+    curl --fail --silent --location --output "$output" "$url" < /dev/null || err "Download failed: $url"
   elif has wget; then
-    wget --quiet --output-document="$output" "$url" || err "Download failed: $url"
+    wget --quiet --output-document="$output" "$url" < /dev/null || err "Download failed: $url"
   else
     err "Neither 'curl' nor 'wget' found. Please install one."
   fi
@@ -61,12 +61,12 @@ download() {
 get_latest_version() {
   version=""
   if has curl; then
-    response=$(curl --silent --fail "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null) || true
+    response=$(curl --silent --fail "https://api.github.com/repos/${REPO}/releases/latest" < /dev/null 2>/dev/null) || true
     if [ -n "$response" ]; then
       version=$(printf '%s' "$response" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/') || true
     fi
   elif has wget; then
-    response=$(wget --quiet -O- "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null) || true
+    response=$(wget --quiet -O- "https://api.github.com/repos/${REPO}/releases/latest" < /dev/null 2>/dev/null) || true
     if [ -n "$response" ]; then
       version=$(printf '%s' "$response" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/') || true
     fi
