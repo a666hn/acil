@@ -59,12 +59,10 @@ download() {
 }
 
 get_latest_version() {
-  url="${GITHUB}/releases/latest/download/NOTHING"
-  # Follow redirects to get the tag from the URL
   if has curl; then
-    version=$(curl --fail --silent --head "${GITHUB}/releases/latest" 2>/dev/null | grep -i "^location:" | sed 's/.*tag\///' | tr -d '\r\n')
+    version=$(curl --silent "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
   elif has wget; then
-    version=$(wget --server-response --spider "${GITHUB}/releases/latest" 2>&1 | grep -i "Location:" | sed 's/.*tag\///' | tr -d '\r\n')
+    version=$(wget --quiet -O- "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
   fi
 
   if [ -z "$version" ]; then
