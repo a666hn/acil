@@ -33,6 +33,16 @@ curl -fsSL https://raw.githubusercontent.com/a666hn/acil/main/install.sh | sh
 curl -fsSL https://raw.githubusercontent.com/a666hn/acil/main/install.sh | sh -s -- --version v0.1.0
 ```
 
+### Windows
+
+`install.sh` also works on Windows from **Git Bash, MSYS2, or WSL** (it detects and packages for `x86_64-pc-windows-msvc` automatically):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/a666hn/acil/main/install.sh | sh
+```
+
+From a native `cmd.exe` or PowerShell prompt (no `sh` available), use Cargo or Manual Download below instead.
+
 ### Cargo (any platform)
 
 ```bash

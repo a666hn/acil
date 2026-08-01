@@ -105,6 +105,12 @@ main() {
   # Detect platform and arch
   PLATFORM="$(detect_platform)"
   ARCH="$(detect_arch)"
+
+  # ARM64 Linux releases are built glibc (gnu), not musl
+  if [ "$ARCH" = "aarch64" ] && [ "$PLATFORM" = "unknown-linux-musl" ]; then
+    PLATFORM="unknown-linux-gnu"
+  fi
+
   TARGET="${ARCH}-${PLATFORM}"
 
   # Get version
