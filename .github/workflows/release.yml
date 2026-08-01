@@ -53,7 +53,7 @@ jobs:
             os: ubuntu-latest
             use_cross: true
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-latest
             use_cross: false
           - target: aarch64-apple-darwin
             os: macos-latest
@@ -86,7 +86,7 @@ jobs:
           if [ "${{ matrix.use_cross }}" = "true" ]; then
             CARGO_BIN="cross"
           fi
-          $CARGO_BIN build --release --locked --target ${{ matrix.target }}
+          $CARGO_BIN build --release --target ${{ matrix.target }}
 
       - name: Package (Unix)
         if: runner.os != 'Windows'
