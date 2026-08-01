@@ -130,7 +130,7 @@ async fn dispatch(config: &mut Config, input: &str) -> Result<()> {
         }
         "jira" => {
             let profile = config.active_profile()?;
-            let client = ApiClient::new(&profile.jira);
+            let client = ApiClient::new(&profile.jira, false);
             let args = std::iter::once("jira").chain(parts[1..].iter().copied());
             match jira::JiraCommand::try_parse_from(args) {
                 Ok(cmd) => {
@@ -146,7 +146,7 @@ async fn dispatch(config: &mut Config, input: &str) -> Result<()> {
         }
         "confluence" => {
             let profile = config.active_profile()?;
-            let client = ApiClient::new(&profile.confluence);
+            let client = ApiClient::new(&profile.confluence, false);
             let args = std::iter::once("confluence").chain(parts[1..].iter().copied());
             match confluence::ConfluenceCommand::try_parse_from(args) {
                 Ok(cmd) => {

@@ -27,6 +27,10 @@ struct Cli {
     /// Override active profile
     #[arg(short, long, global = true)]
     profile: Option<String>,
+
+    /// Show API request details
+    #[arg(short, long, global = true)]
+    verbose: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -79,15 +83,16 @@ async fn main() -> Result<()> {
                 config.switch_profile(p)?;
             }
             let profile = config.active_profile()?;
+            let verbose = cli.verbose;
             match cmd {
                 Commands::Jira { command } => {
-                    let client = client::ApiClient::new(&profile.jira);
+                    let client = client::ApiClient::new(&profile.jira, verbose);
                     let out = jira::execute(&client, command).await?;
                     out.print_all();
                     Ok(())
                 }
                 Commands::Confluence { command } => {
-                    let client = client::ApiClient::new(&profile.confluence);
+                    let client = client::ApiClient::new(&profile.confluence, verbose);
                     let out = confluence::execute(&client, command).await?;
                     out.print_all();
                     Ok(())
@@ -100,10 +105,16 @@ async fn main() -> Result<()> {
 
 async fn login(name: String, url: String, email: String) -> Result<()> {
     println!("Adding profile '{}' for {}", name, url);
-    print!("API Token: ");
     use std::io::Write;
+
+    print!("Jira API Token: ");
     std::io::stdout().flush().ok();
-    let api_token =
+    let jira_api_token =
+        rpassword::read_password().map_err(|e| crate::error::AppError::Readline(e.to_string()))?;
+
+    print!("Confluence API Token: ");
+    std::io::stdout().flush().ok();
+    let confluence_api_token =
         rpassword::read_password().map_err(|e| crate::error::AppError::Readline(e.to_string()))?;
 
     let url = url.trim_end_matches('/');
@@ -111,12 +122,12 @@ async fn login(name: String, url: String, email: String) -> Result<()> {
         jira: ServiceConfig {
             base_url: url.to_string(),
             email: email.clone(),
-            api_token: api_token.clone(),
+            api_token: jira_api_token,
         },
         confluence: ServiceConfig {
             base_url: url.to_string(),
             email,
-            api_token,
+            api_token: confluence_api_token,
         },
     };
 

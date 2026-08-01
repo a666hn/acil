@@ -60,7 +60,7 @@ Start the interactive REPL and add your account:
 ```bash
 acil
 acil()> login --name work --url https://your-domain.atlassian.net --email you@company.com
-# Enter API token when prompted
+# Enter Jira and Confluence API tokens when prompted
 ```
 
 API tokens can be generated at: https://id.atlassian.com/manage-profile/security/api-tokens

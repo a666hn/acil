@@ -140,7 +140,11 @@ async fn list(
     tree: bool,
 ) -> Result<CommandOutput> {
     let jql = query.unwrap_or_else(|| "assignee = currentUser() ORDER BY updated DESC".into());
-    let path = format!("/rest/api/3/search?jql={}&maxResults={}", jql, max);
+    let fields = "summary,status,assignee,issuetype,parent";
+    let path = format!(
+        "/rest/api/3/search/jql?jql={}&maxResults={}&fields={}",
+        jql, max, fields
+    );
     let resp = client
         .get(&path)
         .send()
@@ -148,9 +152,43 @@ async fn list(
         .json::<serde_json::Value>()
         .await?;
 
+    // Print raw response in verbose mode
+    if client.verbose() {
+        eprintln!(
+            "[verbose] Response: {}",
+            serde_json::to_string_pretty(&resp).unwrap_or_default()
+        );
+    }
+
+    // Check for API errors
+    if let Some(errors) = resp["errorMessages"].as_array()
+        && !errors.is_empty()
+    {
+        let msgs: Vec<String> = errors
+            .iter()
+            .map(|e| e.as_str().unwrap_or("").to_string())
+            .collect();
+        return Err(crate::error::AppError::NotFound(format!(
+            "Jira API error: {}",
+            msgs.join(", ")
+        )));
+    }
+    if let Some(msg) = resp["message"].as_str()
+        && !msg.is_empty()
+    {
+        return Err(crate::error::AppError::NotFound(format!(
+            "Jira API error: {}",
+            msg
+        )));
+    }
+
     let issues = match resp["issues"].as_array() {
         Some(arr) if !arr.is_empty() => arr,
-        _ => return Ok(CommandOutput::Empty),
+        _ => {
+            return Ok(output::collect_single_line(
+                "No issues found. Try: acil jira list --query \"project = PROJ\"".to_string(),
+            ));
+        }
     };
 
     let base_url = client.base_url();

@@ -141,6 +141,28 @@ async fn search(
         .json::<serde_json::Value>()
         .await?;
 
+    // Check for API errors
+    if let Some(msg) = resp["message"].as_str()
+        && !msg.is_empty()
+    {
+        return Err(crate::error::AppError::NotFound(format!(
+            "Confluence API error: {}",
+            msg
+        )));
+    }
+    if let Some(errors) = resp["errorMessages"].as_array()
+        && !errors.is_empty()
+    {
+        let msgs: Vec<String> = errors
+            .iter()
+            .map(|e| e.as_str().unwrap_or("").to_string())
+            .collect();
+        return Err(crate::error::AppError::NotFound(format!(
+            "Confluence API error: {}",
+            msgs.join(", ")
+        )));
+    }
+
     if let Some(results) = resp["results"].as_array() {
         let mut rows: Vec<Vec<String>> = results
             .iter()
@@ -157,9 +179,19 @@ async fn search(
             rows.truncate(n);
         }
 
+        if rows.is_empty() {
+            return Ok(output::collect_single_line(format!(
+                "No pages found matching '{}'",
+                query
+            )));
+        }
+
         Ok(output::collect_table(&["ID", "Title", "Type"], &rows))
     } else {
-        Ok(CommandOutput::Empty)
+        Ok(output::collect_single_line(format!(
+            "No pages found matching '{}'",
+            query
+        )))
     }
 }
 
@@ -185,6 +217,28 @@ async fn pages(
             space, max, start
         );
         let resp: serde_json::Value = client.get(&path).send().await?.json().await?;
+
+        // Check for API errors
+        if let Some(msg) = resp["message"].as_str()
+            && !msg.is_empty()
+        {
+            return Err(crate::error::AppError::NotFound(format!(
+                "Confluence API error: {}",
+                msg
+            )));
+        }
+        if let Some(errors) = resp["errorMessages"].as_array()
+            && !errors.is_empty()
+        {
+            let msgs: Vec<String> = errors
+                .iter()
+                .map(|e| e.as_str().unwrap_or("").to_string())
+                .collect();
+            return Err(crate::error::AppError::NotFound(format!(
+                "Confluence API error: {}",
+                msgs.join(", ")
+            )));
+        }
 
         let results = match resp["results"].as_array() {
             Some(r) if !r.is_empty() => r.clone(),
@@ -298,6 +352,17 @@ async fn get(client: &ApiClient, id: &str) -> Result<CommandOutput> {
         .await?
         .json::<serde_json::Value>()
         .await?;
+
+    // Check for API errors
+    if let Some(msg) = resp["message"].as_str()
+        && !msg.is_empty()
+    {
+        return Err(crate::error::AppError::NotFound(format!(
+            "Confluence API error: {}",
+            msg
+        )));
+    }
+
     Ok(output::collect_json(&resp))
 }
 
