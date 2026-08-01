@@ -81,6 +81,7 @@ jobs:
           tar -C "$dir" -xzf "$dir/cross.tar.gz"
 
       - name: Build
+        shell: bash
         run: ${{ env.CARGO }} build --release --locked --target ${{ matrix.target }}
 
       - name: Package (Unix)
