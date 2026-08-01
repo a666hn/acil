@@ -2,7 +2,7 @@
 set -e
 
 BINARY="acil"
-REPO="digdaya-ai/acil"
+REPO="a666hn/acil"
 GITHUB="https://github.com/${REPO}"
 
 detect_platform() {
@@ -50,19 +50,26 @@ download() {
   output="$2"
 
   if has curl; then
-    curl --fail --silent --location --output "$output" "$url"
+    curl --fail --silent --location --output "$output" "$url" || err "Download failed: $url"
   elif has wget; then
-    wget --quiet --output-document="$output" "$url"
+    wget --quiet --output-document="$output" "$url" || err "Download failed: $url"
   else
     err "Neither 'curl' nor 'wget' found. Please install one."
   fi
 }
 
 get_latest_version() {
+  version=""
   if has curl; then
-    version=$(curl --silent "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+    response=$(curl --silent --fail "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null) || true
+    if [ -n "$response" ]; then
+      version=$(printf '%s' "$response" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/') || true
+    fi
   elif has wget; then
-    version=$(wget --quiet -O- "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+    response=$(wget --quiet -O- "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null) || true
+    if [ -n "$response" ]; then
+      version=$(printf '%s' "$response" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/') || true
+    fi
   fi
 
   if [ -z "$version" ]; then
@@ -141,6 +148,9 @@ main() {
     fi
   fi
 
+  # Find the binary in extracted directory
+  EXTRACTED_DIR="${BINARY}-${VERSION}-${TARGET}"
+
   # Determine install directory
   if [ -z "$BIN_DIR" ]; then
     if [ -w "/usr/local/bin" ]; then
@@ -156,11 +166,11 @@ main() {
   # Install
   printf "Installing to %s/%s...\n" "$BIN_DIR" "$BINARY"
   if [ -w "$BIN_DIR" ]; then
-    cp "${ARCHIVE%%.*}/${BINARY_NAME}" "$BIN_DIR/${BINARY}"
+    cp "${EXTRACTED_DIR}/${BINARY_NAME}" "$BIN_DIR/${BINARY}"
     chmod +x "$BIN_DIR/${BINARY}"
   else
     printf "Need sudo to install to %s\n" "$BIN_DIR"
-    sudo cp "${ARCHIVE%%.*}/${BINARY_NAME}" "$BIN_DIR/${BINARY}"
+    sudo cp "${EXTRACTED_DIR}/${BINARY_NAME}" "$BIN_DIR/${BINARY}"
     sudo chmod +x "$BIN_DIR/${BINARY}"
   fi
 
