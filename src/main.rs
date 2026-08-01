@@ -101,6 +101,8 @@ async fn main() -> Result<()> {
 async fn login(name: String, url: String, email: String) -> Result<()> {
     println!("Adding profile '{}' for {}", name, url);
     print!("API Token: ");
+    use std::io::Write;
+    std::io::stdout().flush().ok();
     let api_token =
         rpassword::read_password().map_err(|e| crate::error::AppError::Readline(e.to_string()))?;
 
