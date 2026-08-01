@@ -1,8 +1,8 @@
 # acil
 
-[![Release](https://img.shields.io/github/v/release/digdaya-ai/acil?include_prereleases)](https://github.com/digdaya-ai/acil/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/digdaya-ai/acil/release.yml?branch=main)](https://github.com/digdaya-ai/acil/actions)
-[![License](https://img.shields.io/github/license/digdaya-ai/acil)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/a666hn/acil?include_prereleases)](https://github.com/a666hn/acil/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/a666hn/acil/release.yml?branch=main)](https://github.com/a666hn/acil/actions)
+[![License](https://img.shields.io/github/license/a666hn/acil)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-2024-orange)](https://www.rust-lang.org)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)](#installation)
 
@@ -24,13 +24,13 @@
 ### Quick Install (macOS / Linux)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/digdaya-ai/acil/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/a666hn/acil/main/install.sh | sh
 ```
 
 ### Specific Version
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/digdaya-ai/acil/main/install.sh | sh -s -- --version v0.1.0
+curl -fsSL https://raw.githubusercontent.com/a666hn/acil/main/install.sh | sh -s -- --version v0.1.0
 ```
 
 ### Cargo (any platform)
@@ -41,7 +41,7 @@ cargo install acil
 
 ### Manual Download
 
-Download the latest binary for your platform from [GitHub Releases](https://github.com/digdaya-ai/acil/releases):
+Download the latest binary for your platform from [GitHub Releases](https://github.com/a666hn/acil/releases):
 
 | Platform | File |
 |---|---|

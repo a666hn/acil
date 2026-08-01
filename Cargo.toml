@@ -4,7 +4,7 @@ version = "0.1.1"
 edition = "2024"
 description = "CLI for managing Jira and Confluence with multi-profile support"
 license = "MIT"
-repository = "https://github.com/digdaya-ai/acil"
+repository = "https://github.com/a666hn/acil"
 keywords = ["jira", "confluence", "atlassian", "cli"]
 
 [dependencies]
