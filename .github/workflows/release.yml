@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   create-release:
     name: Create Release
@@ -58,9 +62,6 @@ jobs:
             os: windows-latest
             use_cross: false
 
-    env:
-      CARGO: ${{ matrix.use_cross && 'cross' || 'cargo' }}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -71,7 +72,6 @@ jobs:
 
       - name: Install cross
         if: matrix.use_cross
-        shell: bash
         run: |
           dir="$RUNNER_TEMP/cross"
           mkdir "$dir"
@@ -81,12 +81,15 @@ jobs:
           tar -C "$dir" -xzf "$dir/cross.tar.gz"
 
       - name: Build
-        shell: bash
-        run: ${{ env.CARGO }} build --release --locked --target ${{ matrix.target }}
+        run: |
+          CARGO_BIN="cargo"
+          if [ "${{ matrix.use_cross }}" = "true" ]; then
+            CARGO_BIN="cross"
+          fi
+          $CARGO_BIN build --release --locked --target ${{ matrix.target }}
 
       - name: Package (Unix)
         if: runner.os != 'Windows'
-        shell: bash
         run: |
           VERSION="${{ needs.create-release.outputs.version }}"
           ARCHIVE="acil-${VERSION}-${{ matrix.target }}"
@@ -98,7 +101,6 @@ jobs:
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
-        shell: bash
         run: |
           VERSION="${{ needs.create-release.outputs.version }}"
           ARCHIVE="acil-${VERSION}-${{ matrix.target }}"
