@@ -1,0 +1,25 @@
+[package]
+name = "acil"
+version = "0.1.0"
+edition = "2024"
+description = "CLI for managing Jira and Confluence with multi-profile support"
+license = "MIT"
+repository = "https://github.com/digdaya-ai/acil"
+keywords = ["jira", "confluence", "atlassian", "cli"]
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+rustyline = "14"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1"
+thiserror = "1"
+anyhow = "1"
+dirs = "5"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+rpassword = "7"
+pulldown-cmark = "0.13"
+htmd = "0.5"
