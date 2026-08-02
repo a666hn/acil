@@ -12,8 +12,46 @@ use crate::client::ApiClient;
 use crate::commands::{confluence, jira, profile};
 use crate::config::Config;
 use crate::error::Result;
+use crate::output;
 
 const PAGE_SIZE: usize = 20;
+
+fn gradient_color(t: f32) -> nu_ansi_term::Color {
+    // cyan -> purple
+    let start = (0.0, 255.0, 255.0);
+    let end = (170.0, 80.0, 255.0);
+    let lerp = |a: f64, b: f64| (a + (b - a) * t as f64).round() as u8;
+    nu_ansi_term::Color::Rgb(
+        lerp(start.0, end.0),
+        lerp(start.1, end.1),
+        lerp(start.2, end.2),
+    )
+}
+
+fn print_banner(version: &str) {
+    if let Ok(font) = figleter::FIGfont::standard()
+        && let Some(figure) = font.convert("ACIL")
+    {
+        let art = figure.to_string();
+        let lines: Vec<&str> = art.lines().filter(|l| !l.trim().is_empty()).collect();
+        let total = lines.len();
+        for (i, line) in lines.iter().enumerate() {
+            let t = if total > 1 {
+                i as f32 / (total - 1) as f32
+            } else {
+                0.0
+            };
+            println!(
+                "{}",
+                output::paint(line, Style::new().fg(gradient_color(t)).bold())
+            );
+        }
+    }
+    println!(
+        "{}",
+        output::dim(&format!("v{}  ·  github.com/a666hn/acil", version))
+    );
+}
 
 fn command_words() -> Vec<String> {
     [
@@ -115,13 +153,24 @@ fn build_editor() -> Reedline {
 
 pub async fn run(_initial_config: &Config) -> Result<()> {
     let mut config = Config::load()?;
+
+    print_banner(env!("CARGO_PKG_VERSION"));
     if !config.active_profile.is_empty() {
-        println!("Active profile: {}", config.active_profile);
+        println!(
+            "Profile: {}",
+            output::paint(
+                &config.active_profile,
+                Style::new().fg(nu_ansi_term::Color::Green).bold(),
+            )
+        );
     }
+    println!(
+        "{}",
+        output::dim("Type 'help' for commands, 'exit' to quit")
+    );
+    println!();
 
     let mut line_editor = build_editor();
-
-    println!("acil REPL — type 'help' for commands, 'exit' to quit");
 
     loop {
         let prompt = AcilPrompt {
