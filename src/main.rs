@@ -52,6 +52,24 @@ enum Commands {
         #[command(subcommand)]
         command: confluence::ConfluenceCommand,
     },
+
+    /// Update acil to the latest release
+    Update {
+        /// Skip the confirmation prompt
+        #[arg(short, long)]
+        yes: bool,
+    },
+
+    /// Uninstall acil
+    Uninstall {
+        /// Skip the confirmation prompt
+        #[arg(short, long)]
+        yes: bool,
+
+        /// Also remove ~/.config/acil (profiles, API tokens, history)
+        #[arg(long)]
+        purge_config: bool,
+    },
 }
 
 #[tokio::main]
@@ -66,6 +84,14 @@ async fn main() -> Result<()> {
             let out = profile::execute(&mut config, command)?;
             out.print_all();
             Ok(())
+        }
+        Some(Commands::Update { yes }) => tokio::task::spawn_blocking(move || update(yes))
+            .await
+            .map_err(|e| crate::error::AppError::Update(format!("Task error: {}", e)))?,
+        Some(Commands::Uninstall { yes, purge_config }) => {
+            tokio::task::spawn_blocking(move || uninstall(yes, purge_config))
+                .await
+                .map_err(|e| crate::error::AppError::Update(format!("Task error: {}", e)))?
         }
         None => {
             let config = Config::load()?;
@@ -97,7 +123,9 @@ async fn main() -> Result<()> {
                     out.print_all();
                     Ok(())
                 }
-                Commands::Profile { .. } => unreachable!(),
+                Commands::Profile { .. } | Commands::Update { .. } | Commands::Uninstall { .. } => {
+                    unreachable!()
+                }
             }
         }
     }
@@ -138,5 +166,79 @@ async fn login(name: String, url: String, email: String) -> Result<()> {
         "Profile '{}' saved. Active profile: '{}'",
         name, config.active_profile
     );
+    Ok(())
+}
+
+fn update(yes: bool) -> Result<()> {
+    use crate::error::AppError;
+    use self_update::cargo_crate_version;
+
+    let status = self_update::backends::github::Update::configure()
+        .repo_owner("a666hn")
+        .repo_name("acil")
+        .bin_name("acil")
+        .bin_path_in_archive("acil-v{{ version }}-{{ target }}/{{ bin }}")
+        .target(self_update::get_target())
+        .show_download_progress(true)
+        .no_confirm(yes)
+        .current_version(cargo_crate_version!())
+        .build()
+        .map_err(|e| AppError::Update(format!("Update failed: {}", e)))?
+        .update()
+        .map_err(|e| {
+            AppError::Update(format!(
+                "Update failed: {}. If acil is installed in a system directory, try running with sudo, or re-run install.sh.",
+                e
+            ))
+        })?;
+
+    if status.uptodate() {
+        println!("\nAlready up to date (v{}).", status.version());
+    } else {
+        println!("\nUpdated to v{}.", status.version());
+    }
+
+    Ok(())
+}
+
+fn uninstall(yes: bool, purge_config: bool) -> Result<()> {
+    use crate::error::AppError;
+    use std::io::Write;
+
+    let exe_path = std::env::current_exe()
+        .map_err(|e| AppError::Update(format!("Could not locate the running binary: {}", e)))?;
+
+    if !yes {
+        print!(
+            "Remove {}{}? [y/N] ",
+            exe_path.display(),
+            if purge_config {
+                " and ~/.config/acil (profiles, API tokens, history)"
+            } else {
+                ""
+            }
+        );
+        std::io::stdout().flush().ok();
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).ok();
+        if !matches!(input.trim().to_lowercase().as_str(), "y" | "yes") {
+            println!("Aborted.");
+            return Ok(());
+        }
+    }
+
+    if purge_config
+        && let Some(config_dir) = dirs::home_dir().map(|h| h.join(".config").join("acil"))
+        && config_dir.exists()
+    {
+        std::fs::remove_dir_all(&config_dir)?;
+        println!("Removed {}", config_dir.display());
+    }
+
+    println!("Removing {}...", exe_path.display());
+    self_replace::self_delete()
+        .map_err(|e| AppError::Update(format!("Failed to remove binary: {}", e)))?;
+
+    println!("acil has been uninstalled.");
     Ok(())
 }

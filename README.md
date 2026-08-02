@@ -27,6 +27,7 @@ Working across Jira and Confluence usually means a browser, a dozen tabs, and re
   - [Jira](#jira)
   - [Confluence](#confluence)
   - [Profile](#profile)
+  - [Self-Management](#self-management)
 - [Interactive REPL](#interactive-repl)
 - [Configuration](#configuration)
 - [Development](#development)
@@ -44,6 +45,7 @@ Working across Jira and Confluence usually means a browser, a dozen tabs, and re
 - **Colorized output** — Jira status/type and Confluence page type are color-coded at a glance; automatically disabled when piped or when `NO_COLOR` is set
 - **Cross-platform** — Runs on macOS, Linux, and Windows with zero system dependencies
 - **Fast** — Built in Rust with async HTTP (tokio + reqwest)
+- **Self-updating** — `acil update` fetches and installs the latest release in place; `acil uninstall` removes it cleanly
 
 ## Installation
 
@@ -269,6 +271,35 @@ acil(work)> login --name personal --url https://personal.atlassian.net --email m
 acil(work)> profile switch personal
 acil(personal)>
 ```
+
+### Self-Management
+
+```bash
+acil update                 # Check for and install the latest release
+acil update --yes           # Same, without the confirmation prompt
+acil uninstall               # Remove the acil binary (asks for confirmation)
+acil uninstall --yes         # Remove without prompting
+acil uninstall --purge-config  # Also remove ~/.config/acil (profiles, API tokens, history)
+```
+
+**`update`**
+
+| Flag | Description |
+|---|---|
+| `-y, --yes` | Skip the confirmation prompt |
+
+Downloads and installs the latest GitHub release for your platform, replacing the currently running binary in place — works regardless of whether you installed via `install.sh`, `cargo install --path .`, or a manual download. If the binary lives in a directory you don't have write access to, re-run with `sudo` or use `install.sh` instead.
+
+**`uninstall`**
+
+| Flag | Description |
+|---|---|
+| `-y, --yes` | Skip the confirmation prompt |
+| `--purge-config` | Also delete `~/.config/acil` (profiles, API tokens, and history) |
+
+Removes only the binary by default — your profiles and API tokens in `~/.config/acil` are left untouched unless you explicitly pass `--purge-config`.
+
+`update` and `uninstall` are one-shot CLI commands only; they aren't available inside the REPL.
 
 ## Interactive REPL
 

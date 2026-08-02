@@ -25,6 +25,9 @@ pub enum AppError {
 
     #[error("Readline error: {0}")]
     Readline(String),
+
+    #[error("{0}")]
+    Update(String),
 }
 
 pub type Result<T> = std::result::Result<T, AppError>;
