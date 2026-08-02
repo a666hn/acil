@@ -3,8 +3,12 @@
 [![Release](https://img.shields.io/github/v/release/a666hn/acil?include_prereleases)](https://github.com/a666hn/acil/releases)
 [![Build](https://img.shields.io/github/actions/workflow/status/a666hn/acil/release.yml?branch=main)](https://github.com/a666hn/acil/actions)
 [![License](https://img.shields.io/github/license/a666hn/acil)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-2024-orange)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/rust-2024-orange?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)](#installation)
+[![Jira](https://img.shields.io/badge/Jira-0052CC?logo=jira&logoColor=white)](https://www.atlassian.com/software/jira)
+[![Confluence](https://img.shields.io/badge/Confluence-172B4D?logo=confluence&logoColor=white)](https://www.atlassian.com/software/confluence)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
 
 > A fast, cross-platform CLI for managing Jira and Confluence with multi-account support.
 
