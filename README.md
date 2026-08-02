@@ -182,7 +182,7 @@ With no flags, `jira list` shows the most recently updated issues across the who
 | `-q, --query <jql>` | Custom JQL query — overrides `--assigned`/`--status` entirely |
 | `-a, --assigned <email>` | Filter by assignee email |
 | `-s, --status <name>` | Filter by status, e.g. "To Do", "In Progress", "Done", "In Review", "On Hold" |
-| `-m, --max <n>` | Total results to return (default: 10) — automatically fetches as many pages as needed |
+| `-m, --max <n>` | Total results to return (default: 100) — automatically fetches as many pages as needed |
 | `-l, --limit <n>` | Limit displayed results |
 | `--subtasks` | Include subtasks in output |
 | `--tree` | Show subtasks grouped under parents (requires `--subtasks`) |
@@ -226,7 +226,7 @@ acil confluence update 12345678 --title "New Title"       # Update page
 
 | Flag | Description |
 |---|---|
-| `-m, --max <n>` | Max results (default: 10) |
+| `-m, --max <n>` | Max results (default: 100) |
 | `-l, --limit <n>` | Limit displayed results |
 
 **`confluence pages`**

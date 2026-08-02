@@ -56,7 +56,7 @@ pub enum JiraCommand {
         query: Option<String>,
 
         /// Max results
-        #[arg(short, long, default_value = "10")]
+        #[arg(short, long, default_value = "100")]
         max: u32,
 
         /// Limit displayed results
