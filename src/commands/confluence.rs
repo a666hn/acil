@@ -94,7 +94,7 @@ pub enum ConfluenceCommand {
         file: Option<String>,
 
         /// Parent page ID (optional)
-        #[arg(short, long)]
+        #[arg(long)]
         parent: Option<String>,
     },
 

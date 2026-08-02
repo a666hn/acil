@@ -81,7 +81,7 @@ pub enum JiraCommand {
     /// Create a new issue
     Create {
         /// Project key
-        #[arg(short, long)]
+        #[arg(long)]
         project: String,
 
         /// Issue summary
@@ -93,7 +93,7 @@ pub enum JiraCommand {
         issue_type: String,
 
         /// Priority (e.g., Highest, High, Medium, Low, Lowest)
-        #[arg(short, long)]
+        #[arg(long)]
         priority: Option<String>,
 
         /// Comma-separated labels
@@ -105,7 +105,7 @@ pub enum JiraCommand {
         assignee: Option<String>,
 
         /// Parent issue key (for creating subtasks)
-        #[arg(short, long)]
+        #[arg(long)]
         parent: Option<String>,
 
         /// Description (markdown)
