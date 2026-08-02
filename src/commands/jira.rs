@@ -70,6 +70,14 @@ pub enum JiraCommand {
         /// Show subtasks grouped under parent
         #[arg(long)]
         tree: bool,
+
+        /// Filter by assignee email
+        #[arg(short, long)]
+        assigned: Option<String>,
+
+        /// Filter by status (e.g. "To Do", "In Progress", "Done", "In Review", "On Hold")
+        #[arg(short, long)]
+        status: Option<String>,
     },
 
     /// Get issue details
@@ -143,7 +151,9 @@ pub async fn execute(client: &ApiClient, command: JiraCommand) -> Result<Command
             limit,
             subtasks,
             tree,
-        } => list(client, query, max, limit, subtasks, tree).await,
+            assigned,
+            status,
+        } => list(client, query, max, limit, subtasks, tree, assigned, status).await,
         JiraCommand::Get { key } => get(client, &key).await,
         JiraCommand::Create {
             project,
@@ -179,8 +189,26 @@ async fn list(
     limit: Option<usize>,
     include_subtasks: bool,
     tree: bool,
+    assigned: Option<String>,
+    status: Option<String>,
 ) -> Result<CommandOutput> {
-    let jql = query.unwrap_or_else(|| "assignee = currentUser() ORDER BY updated DESC".into());
+    let jql = query.unwrap_or_else(|| {
+        let mut clauses = Vec::new();
+        if let Some(a) = &assigned {
+            clauses.push(format!("assignee = \"{}\"", a));
+        }
+        if let Some(s) = &status {
+            clauses.push(format!("status = \"{}\"", s));
+        }
+        if clauses.is_empty() {
+            // Jira's search API rejects a bare "ORDER BY" with no restriction at all
+            // ("Unbounded JQL queries are not allowed here"), so this trivially-true
+            // clause is here to satisfy that check without actually filtering anything.
+            "issuetype is not EMPTY ORDER BY updated DESC".to_string()
+        } else {
+            format!("{} ORDER BY updated DESC", clauses.join(" AND "))
+        }
+    });
     let fields = "summary,status,assignee,issuetype,parent";
     let path = format!(
         "/rest/api/3/search/jql?jql={}&maxResults={}&fields={}",

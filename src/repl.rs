@@ -165,7 +165,9 @@ fn print_help() {
     println!("  profile switch <name>                             Switch active profile");
     println!("  profile current                                   Show active profile");
     println!("  profile rm <name>                                 Remove a profile");
-    println!("  jira list [--query <jql>] [--max <n>] [--limit <n>] [--subtasks] [--tree]");
+    println!(
+        "  jira list [--query <jql>] [--assigned <email>] [--status <status>] [--max <n>] [--limit <n>] [--subtasks] [--tree]"
+    );
     println!("  jira get <key>");
     println!(
         "  jira create --project <key> --summary <text> [--issue-type <type>] [--priority <p>] [--labels <l>] [--assignee <a>] [--parent <key>] [--description <md>]"

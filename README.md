@@ -163,7 +163,9 @@ These are one-shot CLI flags, not REPL commands — inside the REPL, switch prof
 ### Jira
 
 ```bash
-acil jira list                                                        # List your issues
+acil jira list                                                        # All issues, any status/assignee, most recently updated first
+acil jira list --status "In Progress"                                 # Filter by status
+acil jira list --assigned you@company.com                             # Filter by assignee
 acil jira list --query "project = PROJ AND status = 'In Progress'"    # Custom JQL
 acil jira list --subtasks --tree                                      # With subtask tree
 acil jira get PROJ-123                                                # Get issue details
@@ -173,9 +175,13 @@ acil jira transition PROJ-123 --status "In Progress"                  # Transiti
 
 **`jira list`**
 
+With no flags, `jira list` shows the most recently updated issues across the whole instance — no status or assignee filter. Use `--assigned`/`--status` to narrow it down, or `--query` for full custom JQL.
+
 | Flag | Description |
 |---|---|
-| `-q, --query <jql>` | Custom JQL query (default: `assignee = currentUser() ORDER BY updated DESC`) |
+| `-q, --query <jql>` | Custom JQL query — overrides `--assigned`/`--status` entirely |
+| `-a, --assigned <email>` | Filter by assignee email |
+| `-s, --status <name>` | Filter by status, e.g. "To Do", "In Progress", "Done", "In Review", "On Hold" |
 | `-m, --max <n>` | Max results from the API (default: 10) |
 | `-l, --limit <n>` | Limit displayed results |
 | `--subtasks` | Include subtasks in output |
