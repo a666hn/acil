@@ -210,59 +210,104 @@ async fn list(
         }
     });
     let fields = "summary,status,assignee,issuetype,parent";
-    let path = format!(
-        "/rest/api/3/search/jql?jql={}&maxResults={}&fields={}",
-        jql, max, fields
-    );
-    let resp = client
-        .get(&path)
-        .send()
-        .await?
-        .json::<serde_json::Value>()
-        .await?;
 
-    // Print raw response in verbose mode
-    if client.verbose() {
-        eprintln!(
-            "[verbose] Response: {}",
-            serde_json::to_string_pretty(&resp).unwrap_or_default()
+    // The search API caps how much a single page returns regardless of the
+    // requested maxResults (observed: a request for 1000 still only returned
+    // 179 with isLast=false), so satisfying `max` requires following
+    // nextPageToken across as many requests as it takes.
+    const PAGE_SIZE: u32 = 100;
+    const SAFETY_PAGE_CAP: u32 = 20;
+
+    let mut collected: Vec<serde_json::Value> = Vec::new();
+    let mut next_token: Option<String> = None;
+    let mut pages_fetched = 0;
+
+    loop {
+        let mut path = format!(
+            "/rest/api/3/search/jql?jql={}&maxResults={}&fields={}",
+            jql, PAGE_SIZE, fields
         );
-    }
-
-    // Check for API errors
-    if let Some(errors) = resp["errorMessages"].as_array()
-        && !errors.is_empty()
-    {
-        let msgs: Vec<String> = errors
-            .iter()
-            .map(|e| e.as_str().unwrap_or("").to_string())
-            .collect();
-        return Err(crate::error::AppError::NotFound(format!(
-            "Jira API error: {}",
-            msgs.join(", ")
-        )));
-    }
-    if let Some(msg) = resp["message"].as_str()
-        && !msg.is_empty()
-    {
-        return Err(crate::error::AppError::NotFound(format!(
-            "Jira API error: {}",
-            msg
-        )));
-    }
-
-    let issues = match resp["issues"].as_array() {
-        Some(arr) if !arr.is_empty() => arr,
-        _ => {
-            return Ok(output::collect_single_line(
-                "No issues found. Try: acil jira list --query \"project = PROJ\"".to_string(),
-            ));
+        if let Some(tok) = &next_token {
+            path.push_str(&format!("&nextPageToken={}", tok));
         }
-    };
+
+        let resp = client
+            .get(&path)
+            .send()
+            .await?
+            .json::<serde_json::Value>()
+            .await?;
+
+        // Print raw response in verbose mode
+        if client.verbose() {
+            eprintln!(
+                "[verbose] Response: {}",
+                serde_json::to_string_pretty(&resp).unwrap_or_default()
+            );
+        }
+
+        // Check for API errors
+        if let Some(errors) = resp["errorMessages"].as_array()
+            && !errors.is_empty()
+        {
+            let msgs: Vec<String> = errors
+                .iter()
+                .map(|e| e.as_str().unwrap_or("").to_string())
+                .collect();
+            return Err(crate::error::AppError::NotFound(format!(
+                "Jira API error: {}",
+                msgs.join(", ")
+            )));
+        }
+        if let Some(msg) = resp["message"].as_str()
+            && !msg.is_empty()
+        {
+            return Err(crate::error::AppError::NotFound(format!(
+                "Jira API error: {}",
+                msg
+            )));
+        }
+
+        let page_issues = match resp["issues"].as_array() {
+            Some(arr) if !arr.is_empty() => arr.clone(),
+            _ => break,
+        };
+
+        for issue in page_issues {
+            let is_subtask = issue["fields"]["issuetype"]["subtask"]
+                .as_bool()
+                .unwrap_or(false);
+            if include_subtasks || !is_subtask {
+                collected.push(issue);
+            }
+        }
+
+        pages_fetched += 1;
+        let hit_target = collected.len() >= max as usize;
+        let is_last = resp["isLast"].as_bool().unwrap_or(true);
+        next_token = resp["nextPageToken"].as_str().map(str::to_string);
+
+        if hit_target || is_last || next_token.is_none() || pages_fetched >= SAFETY_PAGE_CAP {
+            if pages_fetched >= SAFETY_PAGE_CAP && !hit_target {
+                eprintln!(
+                    "Note: stopped after scanning {} pages without reaching {} results — narrow with --status/--assigned/--query for a complete list.",
+                    pages_fetched, max
+                );
+            }
+            break;
+        }
+    }
+    collected.truncate(max as usize);
+
+    if collected.is_empty() {
+        return Ok(output::collect_single_line(
+            "No issues found. Try: acil jira list --query \"project = PROJ\"".to_string(),
+        ));
+    }
 
     let base_url = client.base_url();
 
-    let all_issues: Vec<IssueInfo> = issues
+    let all_issues: Vec<IssueInfo> = collected
         .iter()
         .map(|i| {
             let key = i["key"].as_str().unwrap_or("").to_string();
