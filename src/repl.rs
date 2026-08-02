@@ -1,6 +1,12 @@
+use std::borrow::Cow;
+
 use clap::Parser;
-use rustyline::DefaultEditor;
-use rustyline::error::ReadlineError;
+use nu_ansi_term::Style;
+use reedline::{
+    Color, ColumnarMenu, DefaultCompleter, DefaultHinter, Emacs, ExampleHighlighter,
+    FileBackedHistory, KeyCode, KeyModifiers, MenuBuilder, Prompt, PromptEditMode,
+    PromptHistorySearch, Reedline, ReedlineEvent, ReedlineMenu, Signal, default_emacs_keybindings,
+};
 
 use crate::client::ApiClient;
 use crate::commands::{confluence, jira, profile};
@@ -9,31 +15,124 @@ use crate::error::Result;
 
 const PAGE_SIZE: usize = 20;
 
+fn command_words() -> Vec<String> {
+    [
+        "login",
+        "profile",
+        "list",
+        "switch",
+        "current",
+        "rm",
+        "jira",
+        "get",
+        "create",
+        "transition",
+        "confluence",
+        "search",
+        "pages",
+        "pull",
+        "push",
+        "update",
+        "help",
+        "exit",
+        "quit",
+    ]
+    .into_iter()
+    .map(String::from)
+    .collect()
+}
+
+struct AcilPrompt {
+    profile: String,
+}
+
+impl Prompt for AcilPrompt {
+    fn render_prompt_left(&self) -> Cow<'_, str> {
+        Cow::Owned(format!("acil({})", self.profile))
+    }
+
+    fn render_prompt_right(&self) -> Cow<'_, str> {
+        Cow::Borrowed("")
+    }
+
+    fn render_prompt_indicator(&self, _mode: PromptEditMode) -> Cow<'_, str> {
+        Cow::Borrowed("> ")
+    }
+
+    fn render_prompt_multiline_indicator(&self) -> Cow<'_, str> {
+        Cow::Borrowed("::: ")
+    }
+
+    fn render_prompt_history_search_indicator(&self, search: PromptHistorySearch) -> Cow<'_, str> {
+        Cow::Owned(format!("(reverse-search: {}) ", search.term))
+    }
+
+    fn get_prompt_color(&self) -> Color {
+        Color::Cyan
+    }
+
+    fn get_indicator_color(&self) -> Color {
+        Color::Green
+    }
+}
+
+fn build_editor() -> Reedline {
+    let mut keybindings = default_emacs_keybindings();
+    keybindings.add_binding(
+        KeyModifiers::NONE,
+        KeyCode::Tab,
+        ReedlineEvent::UntilFound(vec![
+            ReedlineEvent::Menu("completion_menu".to_string()),
+            ReedlineEvent::MenuNext,
+        ]),
+    );
+    let edit_mode = Box::new(Emacs::new(keybindings));
+
+    let completion_menu = Box::new(ColumnarMenu::default().with_name("completion_menu"));
+
+    let mut editor = Reedline::create()
+        .with_hinter(Box::new(
+            DefaultHinter::default()
+                .with_style(Style::new().italic().fg(nu_ansi_term::Color::DarkGray)),
+        ))
+        .with_highlighter(Box::new(ExampleHighlighter::new(command_words())))
+        .with_completer(Box::new(DefaultCompleter::new_with_wordlen(
+            command_words(),
+            2,
+        )))
+        .with_menu(ReedlineMenu::EngineCompleter(completion_menu))
+        .with_edit_mode(edit_mode);
+
+    let history_path = dirs::home_dir().map(|h| h.join(".config").join("acil").join("history.txt"));
+    if let Some(path) = history_path
+        && let Ok(history) = FileBackedHistory::with_file(1000, path)
+    {
+        editor = editor.with_history(Box::new(history));
+    }
+
+    editor
+}
+
 pub async fn run(_initial_config: &Config) -> Result<()> {
     let mut config = Config::load()?;
     if !config.active_profile.is_empty() {
         println!("Active profile: {}", config.active_profile);
     }
 
-    let mut rl =
-        DefaultEditor::new().map_err(|e| crate::error::AppError::Readline(e.to_string()))?;
-    let history_path = dirs::home_dir().map(|h| h.join(".config").join("acil").join("history.txt"));
-
-    if let Some(ref path) = history_path {
-        let _ = rl.load_history(path);
-    }
+    let mut line_editor = build_editor();
 
     println!("acil REPL — type 'help' for commands, 'exit' to quit");
 
     loop {
-        let prompt = format!("acil({})> ", config.active_profile);
-        match rl.readline(&prompt) {
-            Ok(line) => {
+        let prompt = AcilPrompt {
+            profile: config.active_profile.clone(),
+        };
+        match line_editor.read_line(&prompt) {
+            Ok(Signal::Success(line)) => {
                 let line = line.trim().to_string();
                 if line.is_empty() {
                     continue;
                 }
-                let _ = rl.add_history_entry(&line);
 
                 match line.as_str() {
                     "exit" | "quit" | "q" => break,
@@ -45,7 +144,8 @@ pub async fn run(_initial_config: &Config) -> Result<()> {
                     }
                 }
             }
-            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => break,
+            Ok(Signal::CtrlC) | Ok(Signal::CtrlD) => break,
+            Ok(_) => {}
             Err(e) => {
                 eprintln!("Readline error: {}", e);
                 break;
@@ -53,9 +153,7 @@ pub async fn run(_initial_config: &Config) -> Result<()> {
         }
     }
 
-    if let Some(ref path) = history_path {
-        let _ = rl.save_history(path);
-    }
+    let _ = line_editor.sync_history();
 
     Ok(())
 }

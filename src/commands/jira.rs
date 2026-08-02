@@ -1,10 +1,51 @@
 use std::collections::HashMap;
 
 use clap::Parser;
+use nu_ansi_term::{Color, Style};
 
 use crate::client::ApiClient;
 use crate::error::Result;
 use crate::output::{self, CommandOutput};
+
+fn key_style() -> Style {
+    Style::new().fg(Color::Cyan).bold()
+}
+
+fn type_style(issue_type: &str) -> Style {
+    match issue_type.to_lowercase().as_str() {
+        "bug" => Style::new().fg(Color::Red),
+        "story" => Style::new().fg(Color::Green),
+        "task" => Style::new().fg(Color::Blue),
+        "epic" => Style::new().fg(Color::Magenta),
+        s if s.contains("sub") => Style::new().fg(Color::Purple),
+        _ => Style::new(),
+    }
+}
+
+fn status_style(status: &str) -> Style {
+    let s = status.to_lowercase();
+    if s.contains("done") || s.contains("closed") || s.contains("resolved") {
+        Style::new().fg(Color::Green)
+    } else if s.contains("progress") || s.contains("review") {
+        Style::new().fg(Color::Yellow)
+    } else if s.contains("block") || s.contains("fail") {
+        Style::new().fg(Color::Red)
+    } else {
+        Style::new()
+    }
+}
+
+fn assignee_style(assignee: &str) -> Style {
+    if assignee == "Unassigned" {
+        Style::new().fg(Color::DarkGray)
+    } else {
+        Style::new()
+    }
+}
+
+fn url_style() -> Style {
+    Style::new().fg(Color::DarkGray)
+}
 
 #[derive(Parser, Debug)]
 pub enum JiraCommand {
@@ -234,12 +275,12 @@ async fn list(
             .iter()
             .map(|i| {
                 vec![
-                    i.key.clone(),
-                    i.issue_type.clone(),
+                    output::paint(&i.key, key_style()),
+                    output::paint(&i.issue_type, type_style(&i.issue_type)),
                     i.summary.clone(),
-                    i.status.clone(),
-                    i.assignee.clone(),
-                    i.url.clone(),
+                    output::paint(&i.status, status_style(&i.status)),
+                    output::paint(&i.assignee, assignee_style(&i.assignee)),
+                    output::paint(&i.url, url_style()),
                 ]
             })
             .collect();
@@ -283,8 +324,22 @@ fn build_jira_tree(all_issues: &[IssueInfo], limit: Option<usize>) -> CommandOut
         }
 
         lines.push(format!(
-            "{:<10} {:<9} {:<24} {:<11} {:<11} {}",
-            issue.key, issue.issue_type, issue.summary, issue.status, issue.assignee, issue.url
+            "{} {} {:<24} {} {} {}",
+            output::paint(&format!("{:<10}", issue.key), key_style()),
+            output::paint(
+                &format!("{:<9}", issue.issue_type),
+                type_style(&issue.issue_type)
+            ),
+            issue.summary,
+            output::paint(
+                &format!("{:<11}", issue.status),
+                status_style(&issue.status)
+            ),
+            output::paint(
+                &format!("{:<11}", issue.assignee),
+                assignee_style(&issue.assignee)
+            ),
+            output::paint(&issue.url, url_style()),
         ));
         count += 1;
 
@@ -302,14 +357,23 @@ fn build_jira_tree(all_issues: &[IssueInfo], limit: Option<usize>) -> CommandOut
                     "├─"
                 };
                 lines.push(format!(
-                    "  {} {:<8} {:<9} {:<24} {:<11} {:<11} {}",
-                    connector,
-                    child.key,
-                    child.issue_type,
+                    "  {} {} {} {:<24} {} {} {}",
+                    output::paint(connector, url_style()),
+                    output::paint(&format!("{:<8}", child.key), key_style()),
+                    output::paint(
+                        &format!("{:<9}", child.issue_type),
+                        type_style(&child.issue_type)
+                    ),
                     child.summary,
-                    child.status,
-                    child.assignee,
-                    child.url
+                    output::paint(
+                        &format!("{:<11}", child.status),
+                        status_style(&child.status)
+                    ),
+                    output::paint(
+                        &format!("{:<11}", child.assignee),
+                        assignee_style(&child.assignee)
+                    ),
+                    output::paint(&child.url, url_style()),
                 ));
                 count += 1;
             }

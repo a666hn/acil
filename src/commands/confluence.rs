@@ -2,12 +2,25 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use clap::Parser;
+use nu_ansi_term::{Color, Style};
 
 use crate::client::ApiClient;
 use crate::confluence_convert;
 use crate::confluence_meta::{self, PageMeta};
 use crate::error::{AppError, Result};
 use crate::output::{self, CommandOutput, TreeNode};
+
+fn id_style() -> Style {
+    Style::new().fg(Color::DarkGray)
+}
+
+fn page_type_style(page_type: &str) -> Style {
+    match page_type.to_lowercase().as_str() {
+        "page" => Style::new().fg(Color::Blue),
+        "blogpost" => Style::new().fg(Color::Magenta),
+        _ => Style::new(),
+    }
+}
 
 #[derive(Parser, Debug)]
 pub enum ConfluenceCommand {
@@ -167,10 +180,11 @@ async fn search(
         let mut rows: Vec<Vec<String>> = results
             .iter()
             .map(|r| {
+                let page_type = r["type"].as_str().unwrap_or("");
                 vec![
-                    r["id"].as_str().unwrap_or("").to_string(),
+                    output::paint(r["id"].as_str().unwrap_or(""), id_style()),
                     r["title"].as_str().unwrap_or("").to_string(),
-                    r["type"].as_str().unwrap_or("").to_string(),
+                    output::paint(page_type, page_type_style(page_type)),
                 ]
             })
             .collect();
@@ -287,7 +301,7 @@ async fn pages(
     } else {
         let mut rows: Vec<Vec<String>> = all_pages
             .iter()
-            .map(|p| vec![p.id.clone(), p.title.clone()])
+            .map(|p| vec![output::paint(&p.id, id_style()), p.title.clone()])
             .collect();
 
         if let Some(n) = limit {
